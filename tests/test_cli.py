@@ -26,10 +26,15 @@ class FakeResponse:
         self.status_code = status_code
         self.url = url
         self.headers = headers or {}
-        self.encoding = "utf-8"
-        self.apparent_encoding = "utf-8"
+        self.encoding: str | None = "utf-8"
         self.closed = False
         self._body = body
+
+    @property
+    def apparent_encoding(self) -> str:
+        if self.closed:
+            raise RuntimeError("The content for this response was already consumed")
+        return "utf-8"
 
     def iter_content(self, chunk_size: int = 65536):
         for index in range(0, len(self._body), chunk_size):
@@ -65,8 +70,22 @@ class CliSecurityTests(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ScrapeError):
             fetch(session, "https://docs.example.com/start", 1, False, MAX_PAGE_BYTES, "html")
+
+    def test_fetch_does_not_use_apparent_encoding_after_stream_is_consumed(self) -> None:
+        response = FakeResponse(
+            200,
+            "https://docs.example.com/no-charset",
+            body="<html><h1>Hello</h1></html>".encode("utf-8"),
+            headers={"Content-Type": "text/html"},
+        )
+        response.encoding = None
+        session = FakeSession([response])
+
+        result = fetch(session, "https://docs.example.com/no-charset", 1, False, MAX_PAGE_BYTES, "html")
+
+        self.assertIn("Hello", result.text)
 
     def test_response_size_limit_is_enforced(self) -> None:
         session = FakeSession(

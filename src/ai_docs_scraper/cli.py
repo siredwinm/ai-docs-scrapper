@@ -112,15 +112,33 @@ def host_resolves_to_private_network(hostname: str) -> bool:
 
 def require_safe_url(url: str, label: str, allow_private_hosts: bool) -> str:
     normalized = require_http_url(url, label)
-    hostname = urlparse(normalized).hostname
+    validate_safe_url_or_raise_system_exit(normalized, label, allow_private_hosts)
+    return normalized
+
+
+def safe_url_error(url: str, label: str, allow_private_hosts: bool) -> str | None:
+    hostname = urlparse(url).hostname
     if not hostname:
-        raise SystemExit(f"{label} must include a host: {url}")
+        return f"{label} must include a host: {url}"
     if not allow_private_hosts and host_resolves_to_private_network(hostname):
-        raise SystemExit(
+        return (
             f"{label} points to a local or private network host: {url}. "
             "Use --allow-private-hosts only when you intentionally scrape a trusted internal docs site."
         )
-    return normalized
+    return None
+
+
+def validate_safe_url_or_raise_system_exit(url: str, label: str, allow_private_hosts: bool) -> None:
+    error = safe_url_error(url, label, allow_private_hosts)
+    if error:
+        raise SystemExit(error)
+
+
+def validate_safe_url_or_raise_scrape_error(url: str, label: str, allow_private_hosts: bool) -> None:
+    normalized = require_http_url(url, label)
+    error = safe_url_error(normalized, label, allow_private_hosts)
+    if error:
+        raise ScrapeError(error)
 
 
 def origin_for(url: str) -> str:
@@ -202,7 +220,8 @@ def fetch(
     max_bytes: int,
     expected_type: str | None = None,
 ) -> FetchResult:
-    current_url = require_safe_url(url, "Fetch URL", allow_private_hosts)
+    current_url = require_http_url(url, "Fetch URL")
+    validate_safe_url_or_raise_scrape_error(current_url, "Fetch URL", allow_private_hosts)
     for _ in range(MAX_REDIRECTS + 1):
         response = session.get(current_url, timeout=timeout, allow_redirects=False, stream=True)
         if response.status_code in REDIRECT_STATUSES:
@@ -210,11 +229,8 @@ def fetch(
             response.close()
             if not location:
                 raise ScrapeError(f"Redirect without Location header: {current_url}")
-            current_url = require_safe_url(
-                urljoin(current_url, location),
-                "Redirect URL",
-                allow_private_hosts,
-            )
+            current_url = require_http_url(urljoin(current_url, location), "Redirect URL")
+            validate_safe_url_or_raise_scrape_error(current_url, "Redirect URL", allow_private_hosts)
             continue
 
         response.raise_for_status()
@@ -224,7 +240,7 @@ def fetch(
             raise ScrapeError(f"Expected {expected_type} content, got {content_type or 'unknown'} from {current_url}")
 
         body = read_limited_body(response, max_bytes)
-        encoding = response.encoding or response.apparent_encoding or "utf-8"
+        encoding = response.encoding or encoding_from_content_type(content_type) or "utf-8"
         return FetchResult(
             url=normalize_url(response.url or current_url),
             text=body.decode(encoding, errors="replace"),
@@ -261,6 +277,13 @@ def is_expected_content_type(content_type: str, expected_type: str | None) -> bo
     if expected_type == "text":
         return media_type in {"text/plain", "text/markdown", "text/x-markdown"}
     return False
+
+
+def encoding_from_content_type(content_type: str) -> str | None:
+    match = re.search(r"charset=([^;\s]+)", content_type, flags=re.IGNORECASE)
+    if not match:
+        return None
+    return match.group(1).strip("\"'")
 
 
 def extract_markdown_links(text: str, source_url: str) -> list[str]:
