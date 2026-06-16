@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import unittest
 
+import requests
+
 from ai_docs_scraper.cli import (
     MAX_PAGE_BYTES,
     ScrapeError,
     default_base_url,
+    discover_crawl,
     extract_markdown_links,
     fetch,
     host_resolves_to_private_network,
@@ -22,6 +25,7 @@ class FakeResponse:
         url: str,
         body: bytes = b"",
         headers: dict[str, str] | None = None,
+        raises_http_error: bool = False,
     ) -> None:
         self.status_code = status_code
         self.url = url
@@ -29,6 +33,7 @@ class FakeResponse:
         self.encoding: str | None = "utf-8"
         self.closed = False
         self._body = body
+        self._raises_http_error = raises_http_error
 
     @property
     def apparent_encoding(self) -> str:
@@ -41,8 +46,10 @@ class FakeResponse:
             yield self._body[index : index + chunk_size]
 
     def raise_for_status(self) -> None:
+        if self._raises_http_error:
+            raise requests.HTTPError(f"HTTP {self.status_code}")
         if self.status_code >= 400:
-            raise RuntimeError(f"HTTP {self.status_code}")
+            raise requests.HTTPError(f"HTTP {self.status_code}")
 
     def close(self) -> None:
         self.closed = True
@@ -73,6 +80,20 @@ class CliSecurityTests(unittest.TestCase):
         with self.assertRaises(ScrapeError):
             fetch(session, "https://docs.example.com/start", 1, False, MAX_PAGE_BYTES, "html")
 
+    def test_redirect_to_non_http_url_is_scrape_error(self) -> None:
+        session = FakeSession(
+            [
+                FakeResponse(
+                    302,
+                    "https://docs.example.com/start",
+                    headers={"Location": "file:///etc/passwd"},
+                )
+            ]
+        )
+
+        with self.assertRaises(ScrapeError):
+            fetch(session, "https://docs.example.com/start", 1, False, MAX_PAGE_BYTES, "html")
+
     def test_fetch_does_not_use_apparent_encoding_after_stream_is_consumed(self) -> None:
         response = FakeResponse(
             200,
@@ -86,6 +107,19 @@ class CliSecurityTests(unittest.TestCase):
         result = fetch(session, "https://docs.example.com/no-charset", 1, False, MAX_PAGE_BYTES, "html")
 
         self.assertIn("Hello", result.text)
+
+    def test_http_error_closes_response(self) -> None:
+        response = FakeResponse(
+            404,
+            "https://docs.example.com/missing",
+            headers={"Content-Type": "text/html"},
+            raises_http_error=True,
+        )
+        session = FakeSession([response])
+
+        with self.assertRaises(requests.HTTPError):
+            fetch(session, "https://docs.example.com/missing", 1, False, MAX_PAGE_BYTES, "html")
+        self.assertTrue(response.closed)
 
     def test_response_size_limit_is_enforced(self) -> None:
         session = FakeSession(
@@ -120,6 +154,36 @@ class CliSecurityTests(unittest.TestCase):
     def test_private_hosts_are_detected(self) -> None:
         self.assertTrue(host_resolves_to_private_network("localhost"))
         self.assertTrue(host_resolves_to_private_network("127.0.0.1"))
+
+    def test_crawl_does_not_return_failed_pages(self) -> None:
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    "https://docs.example.com/good",
+                    body=b"<html><a href='/bad'>Bad</a></html>",
+                    headers={"Content-Type": "text/html"},
+                ),
+                FakeResponse(
+                    500,
+                    "https://docs.example.com/bad",
+                    headers={"Content-Type": "text/html"},
+                    raises_http_error=True,
+                ),
+            ]
+        )
+
+        urls = discover_crawl(
+            session,
+            "https://docs.example.com/good",
+            "https://docs.example.com",
+            1,
+            10,
+            False,
+            {},
+        )
+
+        self.assertEqual(urls, ["https://docs.example.com/good"])
 
 
 class CliParsingTests(unittest.TestCase):

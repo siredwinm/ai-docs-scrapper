@@ -72,6 +72,13 @@ def require_http_url(url: str, label: str = "URL") -> str:
     return normalized
 
 
+def normalize_http_url_or_raise_scrape_error(url: str, label: str) -> str:
+    normalized = normalize_url(url)
+    if not is_http_url(normalized):
+        raise ScrapeError(f"{label} must be an http(s) URL: {url}")
+    return normalized
+
+
 def is_unsafe_ip(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     return any(
         [
@@ -135,7 +142,7 @@ def validate_safe_url_or_raise_system_exit(url: str, label: str, allow_private_h
 
 
 def validate_safe_url_or_raise_scrape_error(url: str, label: str, allow_private_hosts: bool) -> None:
-    normalized = require_http_url(url, label)
+    normalized = normalize_http_url_or_raise_scrape_error(url, label)
     error = safe_url_error(normalized, label, allow_private_hosts)
     if error:
         raise ScrapeError(error)
@@ -220,7 +227,7 @@ def fetch(
     max_bytes: int,
     expected_type: str | None = None,
 ) -> FetchResult:
-    current_url = require_http_url(url, "Fetch URL")
+    current_url = normalize_http_url_or_raise_scrape_error(url, "Fetch URL")
     validate_safe_url_or_raise_scrape_error(current_url, "Fetch URL", allow_private_hosts)
     for _ in range(MAX_REDIRECTS + 1):
         response = session.get(current_url, timeout=timeout, allow_redirects=False, stream=True)
@@ -229,11 +236,15 @@ def fetch(
             response.close()
             if not location:
                 raise ScrapeError(f"Redirect without Location header: {current_url}")
-            current_url = require_http_url(urljoin(current_url, location), "Redirect URL")
+            current_url = normalize_http_url_or_raise_scrape_error(urljoin(current_url, location), "Redirect URL")
             validate_safe_url_or_raise_scrape_error(current_url, "Redirect URL", allow_private_hosts)
             continue
 
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            response.close()
+            raise
         content_type = response.headers.get("Content-Type", "")
         if not is_expected_content_type(content_type, expected_type):
             response.close()
@@ -384,7 +395,6 @@ def discover_crawl(
         if url in seen or not is_in_scope(url, base_url):
             continue
         seen.add(url)
-        result.append(url)
 
         try:
             fetched = fetch(session, url, timeout, allow_private_hosts, MAX_PAGE_BYTES, "html")
@@ -395,6 +405,7 @@ def discover_crawl(
         except (requests.RequestException, ScrapeError):
             continue
 
+        result.append(url)
         soup = BeautifulSoup(html, "html.parser")
         for link in soup.find_all("a", href=True):
             next_url = normalize_url(urljoin(url, link["href"]))
