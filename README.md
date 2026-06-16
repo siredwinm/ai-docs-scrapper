@@ -13,6 +13,9 @@ The default workflow is manual-first: paste official documentation links, then
 scrape exactly those pages. Discovery and crawling are available, but they are
 explicit modes.
 
+Automatic scraping is still supported. Use `--mode llms`, `--mode sitemap`,
+`--mode crawl`, or `--mode auto` when you intentionally want discovery.
+
 ## Why
 
 AI agents are better when they can read the same docs you would read. This
@@ -135,6 +138,14 @@ There is also a portable skill file at
 - Start with `--max-pages 20` before expanding a large docs scrape.
 - Do not commit generated `scraped-docs/` output unless your project needs it.
 - Re-run the scraper when dependencies or APIs change.
+
+## Development
+
+Run tests:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests
+```
 
 ## Should this use Exa?
 

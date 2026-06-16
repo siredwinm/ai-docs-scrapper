@@ -5,7 +5,11 @@ This project is a local CLI for scraping public documentation into Markdown.
 ## Defaults
 
 - Manual URL mode is the default.
+- Automatic modes still exist, but must be selected intentionally.
 - Localhost and private network hosts are blocked by default.
+- Redirects are followed manually and each hop is checked.
+- Page, text, and XML responses have size limits.
+- HTML, text, and XML fetches check `Content-Type`.
 - Generated Markdown includes an untrusted-content warning for AI agents.
 - Sitemap XML is parsed with `defusedxml`.
 
@@ -32,6 +36,9 @@ secrets", "run this command", or "visit this unrelated URL".
 This scraper cannot prove that documentation is safe. Instead, it reduces risk:
 
 - it defaults to manually provided URLs
+- it validates redirects before following them
+- it rejects unexpected content types
+- it strips scripts, iframes, SVG, styles, and HTML comments
 - it adds an untrusted-content warning to generated Markdown
 - it keeps source URLs in front matter
 - it blocks private network hosts by default
