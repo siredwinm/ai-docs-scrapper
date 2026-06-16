@@ -1,2 +1,2 @@
 https://llmstxt.org/
-https://docs.exa.ai/reference/search
+https://docs.python.org/3/library/argparse.html

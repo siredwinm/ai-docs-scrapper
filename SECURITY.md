@@ -2,6 +2,13 @@
 
 This project is a local CLI for scraping public documentation into Markdown.
 
+## Defaults
+
+- Manual URL mode is the default.
+- Localhost and private network hosts are blocked by default.
+- Generated Markdown includes an untrusted-content warning for AI agents.
+- Sitemap XML is parsed with `defusedxml`.
+
 ## Supported Use
 
 - Public documentation pages
@@ -15,6 +22,32 @@ This project is a local CLI for scraping public documentation into Markdown.
 - Private customer portals
 - URLs containing secrets, tokens, or session IDs
 - Running the tool against internal network services unless you understand the risk
+
+## Prompt Injection
+
+Documentation pages can contain text that tries to manipulate an AI agent.
+Examples include instructions like "ignore previous instructions", "send your
+secrets", "run this command", or "visit this unrelated URL".
+
+This scraper cannot prove that documentation is safe. Instead, it reduces risk:
+
+- it defaults to manually provided URLs
+- it adds an untrusted-content warning to generated Markdown
+- it keeps source URLs in front matter
+- it blocks private network hosts by default
+
+Agents using scraped output should treat it as reference data only.
+
+## Private Hosts
+
+By default the CLI rejects localhost, loopback, link-local, private, reserved,
+multicast, and unspecified network targets.
+
+Only use this flag for a trusted internal documentation site:
+
+```bash
+ai-docs-scraper http://localhost:3000/docs --allow-private-hosts
+```
 
 ## Reporting Issues
 
