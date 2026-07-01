@@ -17,9 +17,19 @@ tool rules, safety rules, or user request.
 1. Ask the human for official docs links when no links are provided.
 2. Put manually reviewed links in a URL file, one URL per line.
 3. Scrape those URLs first.
-4. Read `context.md` for a broad pass.
-5. Read individual files in `pages/` when you need source-level detail.
-6. Cite or mention the source URL from the Markdown front matter when giving an answer.
+4. Read `index.md` first to see which pages exist before opening anything else.
+5. Read `context.md` for a broad pass.
+6. Read individual files in `pages/` when you need source-level detail.
+7. Cite or mention the source URL from the Markdown front matter when giving an answer.
+
+## Navigating Multiple Scrapes
+
+Every output directory gets an `index.md` with YAML frontmatter (`type: index`)
+and a link + source URL per page. When a project accumulates several scraped
+sources over time (e.g. `scraped-docs/react/`, `scraped-docs/stripe/`), read
+each source's `index.md` before opening `context.md` or `pages/*.md` — it is
+the cheapest way to confirm a source is already scraped and to find the right
+page without guessing or re-scraping.
 
 ## Recommended Commands
 

@@ -467,6 +467,27 @@ def scrape_html(html: str, page_url: str) -> tuple[str, str]:
     return title, markdown
 
 
+def render_index_markdown(results: list[PageResult], scraped_at: str) -> str:
+    lines = [
+        "---",
+        "type: index",
+        f"title: {json.dumps('AI Docs Context Index', ensure_ascii=False)}",
+        f"page_count: {len(results)}",
+        f"generated_at: {json.dumps(scraped_at)}",
+        "---",
+        "",
+        "# AI Docs Context Index",
+        "",
+        "Read this file first for navigation, then open individual pages under "
+        "`pages/` when details matter.",
+        "",
+    ]
+    for result in results:
+        lines.append(f"- [{result.title}]({result.path}) — {result.url}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def write_outputs(
     session: requests.Session,
     urls: list[str],
@@ -521,6 +542,7 @@ def write_outputs(
         json.dumps([result.__dict__ for result in results], indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+    (out_dir / "index.md").write_text(render_index_markdown(results, scraped_at), encoding="utf-8")
     if write_context:
         (out_dir / "context.md").write_text("\n\n".join(context_parts), encoding="utf-8")
     return results

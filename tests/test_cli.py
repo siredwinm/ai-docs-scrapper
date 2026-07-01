@@ -6,6 +6,7 @@ import requests
 
 from ai_docs_scraper.cli import (
     MAX_PAGE_BYTES,
+    PageResult,
     ScrapeError,
     default_base_url,
     discover_crawl,
@@ -14,6 +15,7 @@ from ai_docs_scraper.cli import (
     host_resolves_to_private_network,
     is_expected_content_type,
     is_in_scope,
+    render_index_markdown,
     slug_for_url,
 )
 
@@ -210,6 +212,21 @@ class CliParsingTests(unittest.TestCase):
         self.assertTrue(is_expected_content_type("text/html; charset=utf-8", "html"))
         self.assertTrue(is_expected_content_type("application/sitemap+xml", "xml"))
         self.assertFalse(is_expected_content_type("application/pdf", "html"))
+
+    def test_render_index_markdown_lists_pages_with_frontmatter(self) -> None:
+        results = [
+            PageResult(url="https://example.com/a", title="A", path="pages/a.md"),
+            PageResult(url="https://example.com/b", title="B", path="pages/b.md"),
+        ]
+        rendered = render_index_markdown(results, "2026-07-01T00:00:00+00:00")
+        self.assertTrue(rendered.startswith("---\ntype: index\n"))
+        self.assertIn("page_count: 2", rendered)
+        self.assertIn("[A](pages/a.md) — https://example.com/a", rendered)
+        self.assertIn("[B](pages/b.md) — https://example.com/b", rendered)
+
+    def test_render_index_markdown_handles_no_pages(self) -> None:
+        rendered = render_index_markdown([], "2026-07-01T00:00:00+00:00")
+        self.assertIn("page_count: 0", rendered)
 
 
 if __name__ == "__main__":

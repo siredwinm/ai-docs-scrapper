@@ -32,7 +32,7 @@ Markdown your coding agent can actually read.
 - 🔎 **Discovery when you want it** — `llms.txt`, `sitemap.xml`, bounded crawl, or auto.
 - 🔒 **Safe by design** — blocks private hosts, validates every redirect, caps response sizes, checks content types.
 - 🛡️ **Prompt-injection aware** — every page is tagged as untrusted reference content.
-- 📦 **Self-contained output** — `pages/*.md`, a bundled `context.md`, and `index.json`.
+- 📦 **Self-contained output** — `pages/*.md`, a navigable `index.md`, a bundled `context.md`, and `index.json`.
 
 No API key. No cloud. Everything runs locally.
 
@@ -101,7 +101,7 @@ flowchart LR
     F --> G
     G["🔒 Safe fetch<br/>private-host block ·<br/>redirect check · size cap ·<br/>content-type check"] --> H["🧹 Clean HTML<br/>strip script/style/nav/<br/>header/footer/comments"]
     H --> I["📝 markdownify<br/>+ untrusted-content notice<br/>+ source front matter"]
-    I --> J["📦 Output<br/>pages/*.md · context.md · index.json"]
+    I --> J["📦 Output<br/>pages/*.md · index.md · context.md · index.json"]
 ```
 
 **Each fetch is hardened:** localhost and private networks are blocked,
@@ -170,9 +170,15 @@ scraped-docs/example/
 ├── pages/
 │   ├── getting-started.md
 │   └── api-reference.md
+├── index.md        # navigation index for agents — read this first
 ├── context.md      # all pages bundled into one file
-└── index.json      # [{ url, title, path }, ...]
+└── index.json      # [{ url, title, path }, ...] for scripts/tooling
 ```
+
+`index.md` carries `type: index` frontmatter plus a title + source link per
+page, so an agent (or you) can see what's already scraped without opening
+`context.md` or crawling the folder. It's especially useful once you scrape
+multiple docs sources into sibling folders over time.
 
 Each Markdown page carries source metadata and an untrusted-content warning:
 
@@ -200,7 +206,7 @@ flowchart TD
     CLI --> DISC["Discovery<br/>discover_llms / discover_sitemap /<br/>discover_crawl / url-list"]
     DISC --> FETCH["fetch()<br/>redirect validation · size limits ·<br/>content-type checks · encoding"]
     FETCH --> SCRAPE["scrape_html()<br/>BeautifulSoup clean → markdownify"]
-    SCRAPE --> OUT["write_outputs()<br/>pages/*.md · context.md · index.json"]
+    SCRAPE --> OUT["write_outputs()<br/>pages/*.md · index.md · context.md · index.json"]
 ```
 
 | Module / function | Responsibility |
