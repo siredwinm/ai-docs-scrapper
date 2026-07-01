@@ -9,10 +9,12 @@
   <a href="#-modes">Modes</a> ·
   <a href="#-architecture">Architecture</a> ·
   <a href="#-security">Security</a> ·
-  <a href="AI_AGENT_GUIDE.md">Agent guide</a>
+  <a href="AI_AGENT_GUIDE.md">Agent guide</a> ·
+  <a href="CLAUDE.md">Claude Code</a>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/github/actions/workflow/status/siredwinm/ai-docs-scrapper/tests.yml?branch=main&style=flat-square&label=tests" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-MIT-216B4E?style=flat-square" alt="MIT License">
   <img src="https://img.shields.io/badge/API_key-not_required-0EA5E9?style=flat-square" alt="No API key">
@@ -296,6 +298,12 @@ A compact workflow agents can follow before coding with fresh docs:
 
 Full guide: [AI_AGENT_GUIDE.md](AI_AGENT_GUIDE.md) · portable skill:
 [skills/ai-docs-scraper/SKILL.md](skills/ai-docs-scraper/SKILL.md).
+
+**Using Claude Code?** Open this repo and it auto-loads
+[CLAUDE.md](CLAUDE.md) — project-specific guidance for *developing* the
+scraper (architecture, invariants to preserve, testing conventions). It's
+the counterpart to `AI_AGENT_GUIDE.md`, which is for *consuming* scraped
+output instead.
 
 ---
 
