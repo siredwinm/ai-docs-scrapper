@@ -110,6 +110,20 @@ class CliSecurityTests(unittest.TestCase):
 
         self.assertIn("Hello", result.text)
 
+    def test_fetch_falls_back_to_utf8_on_unknown_charset(self) -> None:
+        response = FakeResponse(
+            200,
+            "https://docs.example.com/legacy",
+            body="<html><h1>Hello</h1></html>".encode("utf-8"),
+            headers={"Content-Type": "text/html; charset=x-unknown-legacy"},
+        )
+        response.encoding = None
+        session = FakeSession([response])
+
+        result = fetch(session, "https://docs.example.com/legacy", 1, False, MAX_PAGE_BYTES, "html")
+
+        self.assertIn("Hello", result.text)
+
     def test_http_error_closes_response(self) -> None:
         response = FakeResponse(
             404,
@@ -227,6 +241,11 @@ class CliParsingTests(unittest.TestCase):
     def test_render_index_markdown_handles_no_pages(self) -> None:
         rendered = render_index_markdown([], "2026-07-01T00:00:00+00:00")
         self.assertIn("page_count: 0", rendered)
+
+    def test_render_index_markdown_escapes_brackets_in_title(self) -> None:
+        results = [PageResult(url="https://example.com/a", title="list[str] Reference", path="pages/a.md")]
+        rendered = render_index_markdown(results, "2026-07-01T00:00:00+00:00")
+        self.assertIn("[list\\[str\\] Reference](pages/a.md)", rendered)
 
 
 if __name__ == "__main__":

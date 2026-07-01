@@ -254,7 +254,7 @@ def fetch(
         encoding = response.encoding or encoding_from_content_type(content_type) or "utf-8"
         return FetchResult(
             url=normalize_url(response.url or current_url),
-            text=body.decode(encoding, errors="replace"),
+            text=decode_body(body, encoding),
             content_type=content_type,
         )
 
@@ -288,6 +288,13 @@ def is_expected_content_type(content_type: str, expected_type: str | None) -> bo
     if expected_type == "text":
         return media_type in {"text/plain", "text/markdown", "text/x-markdown"}
     return False
+
+
+def decode_body(body: bytes, encoding: str) -> str:
+    try:
+        return body.decode(encoding, errors="replace")
+    except LookupError:
+        return body.decode("utf-8", errors="replace")
 
 
 def encoding_from_content_type(content_type: str) -> str | None:
@@ -483,7 +490,8 @@ def render_index_markdown(results: list[PageResult], scraped_at: str) -> str:
         "",
     ]
     for result in results:
-        lines.append(f"- [{result.title}]({result.path}) — {result.url}")
+        safe_title = result.title.replace("[", "\\[").replace("]", "\\]")
+        lines.append(f"- [{safe_title}]({result.path}) — {result.url}")
     lines.append("")
     return "\n".join(lines)
 
