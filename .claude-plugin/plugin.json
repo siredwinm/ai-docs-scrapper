@@ -1,0 +1,12 @@
+{
+  "name": "ai-docs-scraper",
+  "description": "Scrape official documentation sites into clean, cited Markdown context for AI coding agents. No API key required, SSRF-safe, prompt-injection aware.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Edwin Martin",
+    "url": "https://github.com/siredwinm"
+  },
+  "homepage": "https://github.com/siredwinm/ai-docs-scrapper",
+  "repository": "https://github.com/siredwinm/ai-docs-scrapper",
+  "license": "MIT"
+}

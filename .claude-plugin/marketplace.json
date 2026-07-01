@@ -1,0 +1,14 @@
+{
+  "name": "ai-docs-scraper",
+  "owner": {
+    "name": "Edwin Martin",
+    "url": "https://github.com/siredwinm"
+  },
+  "plugins": [
+    {
+      "name": "ai-docs-scraper",
+      "source": "./",
+      "description": "Scrape official documentation sites into clean, cited Markdown context for AI coding agents. No API key required, SSRF-safe, prompt-injection aware."
+    }
+  ]
+}

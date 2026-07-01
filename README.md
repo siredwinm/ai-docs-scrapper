@@ -21,6 +21,7 @@
   <img src="https://img.shields.io/badge/fetching-SSRF--safe-C9432F?style=flat-square" alt="SSRF-safe">
   <img src="https://img.shields.io/badge/prompt_injection-aware-7C3AED?style=flat-square" alt="Prompt-injection aware">
   <img src="https://img.shields.io/badge/output-Markdown-17324D?style=flat-square&logo=markdown&logoColor=white" alt="Markdown output">
+  <img src="https://img.shields.io/badge/Claude_Code-plugin-D97757?style=flat-square" alt="Claude Code plugin">
 </p>
 
 <p align="center">
@@ -96,6 +97,21 @@ Prefer a reviewed list of links? That's the highest-signal path:
 ```bash
 ai-docs-scraper --urls-file examples/targets.txt --out scraped-docs/custom
 ```
+
+### Or install as a Claude Code plugin
+
+No clone, no venv — this repo ships a [plugin manifest](.claude-plugin/plugin.json)
+and self-hosted [marketplace](.claude-plugin/marketplace.json):
+
+```
+/plugin marketplace add siredwinm/ai-docs-scrapper
+/plugin install ai-docs-scraper@ai-docs-scraper
+```
+
+This installs the `ai-docs-scraper` skill so Claude Code knows the safe,
+manual-first scraping workflow automatically — see
+[skills/ai-docs-scraper/SKILL.md](skills/ai-docs-scraper/SKILL.md). You'll
+still need the CLI itself installed (`pip install -e .`) for the skill to run.
 
 ---
 
