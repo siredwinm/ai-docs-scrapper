@@ -5,6 +5,7 @@
 <p align="center">
   <a href="#-quickstart">Quickstart</a> ·
   <a href="#-how-it-works">How it works</a> ·
+  <a href="#-anatomy-of-a-scrape">Anatomy</a> ·
   <a href="#-modes">Modes</a> ·
   <a href="#-architecture">Architecture</a> ·
   <a href="#-security">Security</a> ·
@@ -18,6 +19,11 @@
   <img src="https://img.shields.io/badge/fetching-SSRF--safe-C9432F?style=flat-square" alt="SSRF-safe">
   <img src="https://img.shields.io/badge/prompt_injection-aware-7C3AED?style=flat-square" alt="Prompt-injection aware">
   <img src="https://img.shields.io/badge/output-Markdown-17324D?style=flat-square&logo=markdown&logoColor=white" alt="Markdown output">
+</p>
+
+<p align="center">
+  <strong>Stop feeding your AI agent stale training data.</strong><br>
+  One command turns any official docs site into clean, cited, agent-ready Markdown.
 </p>
 
 ---
@@ -56,6 +62,14 @@ Use it when you want an agent to:
 - compare old assumptions with current behavior
 - build a small project-specific knowledge pack
 - stop guessing from outdated training data
+
+### Why not just...
+
+| Approach | Effort | Freshness | Agent-ready | Safety |
+| --- | --- | --- | --- | --- |
+| Copy-paste docs by hand | High, repeated per page | Stale within weeks | No structure or citations | — |
+| A throwaway crawler script | Medium, DIY maintenance | Fresh | Raw HTML, no cleanup | No SSRF / redirect / size checks |
+| **ai-docs-scraper** | **One command** | **Fresh — re-run anytime** | **Clean Markdown + frontmatter + `index.md`** | **Private-host blocking, redirect validation, size caps** |
 
 ---
 
@@ -107,6 +121,24 @@ flowchart LR
 **Each fetch is hardened:** localhost and private networks are blocked,
 redirects are followed manually with every hop re-validated, responses are
 size-capped and streamed, and `Content-Type` is checked before parsing.
+
+---
+
+## 🔬 Anatomy of a scrape
+
+<p align="center">
+  <img src="assets/scrape-pipeline.svg" alt="Anatomy of a scrape: fetch, clean, convert, write, index" width="100%">
+</p>
+
+Walking through one URL, e.g. `https://developers.cloudflare.com/workers/get-started/guide/`:
+
+1. **Fetch** — `require_safe_url` rejects it if it resolves to a private/loopback/link-local host. The response streams in with `allow_redirects=False`; every redirect hop is re-validated before it's followed, up to `MAX_REDIRECTS`.
+2. **Clean** — `<script>`, `<style>`, `<noscript>`, `<svg>`, `<iframe>`, HTML comments, `<nav>`, `<header>`, `<footer>`, and breadcrumbs are stripped before conversion.
+3. **Convert** — the remaining `<main>`/`<article>`/`<body>` is turned into Markdown via `markdownify`, links and images are made absolute, and excess blank lines are collapsed.
+4. **Write** — the page is saved to `pages/get-started-guide.md` with YAML front matter (`title`, `source`, `scraped_at`) and the untrusted-content notice.
+5. **Index** — the page is appended to `context.md` (bundled context) and listed in `index.md` (navigation) and `index.json` (machine-readable).
+
+The same five steps run for every URL — `--mode` only changes how the URL list is built.
 
 ---
 
